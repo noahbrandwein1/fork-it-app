@@ -9,9 +9,9 @@ export default function RestaurantCard({ restaurant, onAdd, isAdded }) {
     }`}>
       
       {/* Photo */}
-      {restaurant.photo ? (
-        <img
-          src={getPhotoUrl(restaurant.photo)}
+      {restaurant.photoUrl ? (
+  <img
+    src={restaurant.photoUrl}
           alt={restaurant.name}
           className="w-full h-32 object-cover"
         />

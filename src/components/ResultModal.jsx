@@ -9,8 +9,8 @@ export default function ResultModal({ restaurant, onSpinAgain, onClose }) {
   const doordashUrl = 'https://www.doordash.com/search/store/' + encodeURIComponent(restaurant.name) + '/'
   const uberEatsUrl = 'https://www.ubereats.com/search?q=' + encodeURIComponent(restaurant.name)
 
-  const photo = restaurant.photo
-    ? <img src={getPhotoUrl(restaurant.photo, 600)} alt={restaurant.name} className="w-full h-48 object-cover" />
+  const photo = restaurant.photoUrl
+    ? <img src={restaurant.photoUrl} alt={restaurant.name} className="w-full h-48 object-cover" />
     : <div className="w-full h-48 bg-gray-800 flex items-center justify-center text-6xl">🍴</div>
 
   return (

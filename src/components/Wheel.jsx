@@ -50,6 +50,7 @@ export default function Wheel({ restaurants, onResult }) {
           radiusLineWidth={2}
           fontSize={13}
           perpendicularText={false}
+          spinDuration={0.3}
         />
       )}
 

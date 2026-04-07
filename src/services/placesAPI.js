@@ -37,28 +37,48 @@ function mapPlace(place) {
     address: place.vicinity || place.formatted_address,
     types: place.types,
     isOpen: place.opening_hours?.isOpen() ?? null,
-    photo: place.photos?.[0] ?? null,
+    photoUrl: place.photos ? place.photos[0].getUrl({ maxWidth: 400 }) : null,
   }
 }
 
-export async function getNearbyRestaurants({ lat, lng, radius = 2000, type = '' }) {
+const KEYWORD_BATCHES = [
+  ['restaurant', 'fast food', 'pizza', 'sushi'],
+  ['mexican', 'chinese', 'italian', 'burgers'],
+  ['bbq', 'thai', 'indian', 'mediterranean'],
+  ['american', 'japanese', 'korean', 'greek'],
+]
+
+export async function getNearbyRestaurants({ lat, lng, radius = 2000, type = '', page = 0 }) {
   await init()
-  return new Promise((resolve, reject) => {
-    const request = {
-      location: new window.google.maps.LatLng(lat, lng),
-      radius,
-      type: 'restaurant',
-      keyword: type || undefined,
-    }
-    placesService.nearbySearch(request, (results, status) => {
-      if (status === window.google.maps.places.PlacesServiceStatus.OK) {
-        resolve(results.map(mapPlace))
-      } else if (status === window.google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
-        resolve([])
-      } else {
-        reject(new Error('Places API error: ' + status))
+
+  const keywords = type ? [type] : KEYWORD_BATCHES[page % KEYWORD_BATCHES.length]
+
+  const searches = keywords.map((keyword) => {
+    return new Promise((resolve) => {
+      const request = {
+        location: new window.google.maps.LatLng(lat, lng),
+        radius,
+        type: 'restaurant',
+        keyword,
       }
+      placesService.nearbySearch(request, (results, status) => {
+        if (status === window.google.maps.places.PlacesServiceStatus.OK) {
+          resolve(results.map(mapPlace))
+        } else {
+          resolve([])
+        }
+      })
     })
+  })
+
+  const allResults = await Promise.all(searches)
+  const flat = allResults.flat()
+
+  const seen = new Set()
+  return flat.filter((r) => {
+    if (seen.has(r.id)) return false
+    seen.add(r.id)
+    return true
   })
 }
 
@@ -84,6 +104,5 @@ export async function searchRestaurants({ lat, lng, query }) {
 }
 
 export function getPhotoUrl(photo, maxWidth = 400) {
-  if (!photo) return null
-  return photo.getUrl({ maxWidth })
+  return photo || null
 }
