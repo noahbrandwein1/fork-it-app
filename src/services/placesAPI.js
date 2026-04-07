@@ -106,3 +106,17 @@ export async function searchRestaurants({ lat, lng, query }) {
 export function getPhotoUrl(photo, maxWidth = 400) {
   return photo || null
 }
+export async function geocodeLocation(query) {
+  await loadGoogleMaps()
+  return new Promise((resolve, reject) => {
+    const geocoder = new window.google.maps.Geocoder()
+    geocoder.geocode({ address: query }, (results, status) => {
+      if (status === 'OK' && results[0]) {
+        const loc = results[0].geometry.location
+        resolve({ lat: loc.lat(), lng: loc.lng() })
+      } else {
+        reject(new Error('Location not found'))
+      }
+    })
+  })
+}

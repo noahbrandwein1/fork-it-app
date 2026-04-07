@@ -7,7 +7,7 @@ export function useLocation() {
 
   useEffect(() => {
     if (!navigator.geolocation) {
-      setError('Geolocation is not supported by your browser')
+      setError('no-geolocation')
       setLoading(false)
       return
     }
@@ -20,12 +20,17 @@ export function useLocation() {
         })
         setLoading(false)
       },
-      (err) => {
-        setError('Unable to get your location. Please enable location access.')
+      () => {
+        setError('permission-denied')
         setLoading(false)
       }
     )
   }, [])
 
-  return { location, error, loading }
+  function setManualLocation(lat, lng) {
+    setLocation({ lat, lng })
+    setError(null)
+  }
+
+  return { location, error, loading, setManualLocation }
 }

@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react'
 import { useLocation } from './hooks/useLocation'
-import { getNearbyRestaurants, searchRestaurants } from './services/placesAPI'
+import { getNearbyRestaurants, searchRestaurants, geocodeLocation } from './services/placesAPI'
 import FilterBar from './components/FilterBar'
 import RestaurantCard from './components/RestaurantCard'
 import Wheel from './components/Wheel'
 import ResultModal from './components/ResultModal'
 
 export default function App() {
-  const { location, error: locationError, loading: locationLoading } = useLocation()
+  const [locationQuery, setLocationQuery] = useState('')
+const [locationSearchError, setLocationSearchError] = useState(null)
+const [locationSearching, setLocationSearching] = useState(false)
+  const { location, error: locationError, loading: locationLoading, setManualLocation } = useLocation()
   const [restaurants, setRestaurants] = useState([])
   const [wheelRestaurants, setWheelRestaurants] = useState([])
   const [result, setResult] = useState(null)
@@ -21,7 +24,7 @@ export default function App() {
   const [filters, setFilters] = useState({
     cuisine: '',
     price: null,
-    distance: 1600,
+    distance: 4800,
   })
 
   useEffect(() => {
@@ -64,6 +67,37 @@ export default function App() {
     setLoading(false)
     setLoadingMore(false)
   }
+ async function handleLocationSearch(e) {
+  e.preventDefault()
+  if (!locationQuery.trim()) return
+  setLocationSearching(true)
+  setLocationSearchError(null)
+  const trimmed = locationQuery.trim()
+  const isZip = /^\d{5}$/.test(trimmed)
+  const queries = isZip
+    ? [`${trimmed}, USA`, `zipcode ${trimmed}`, `${trimmed} United States`]
+    : [trimmed, `${trimmed}, USA`]
+  try {
+    let coords = null
+    for (const query of queries) {
+      try {
+        coords = await geocodeLocation(query)
+        if (coords) break
+      } catch {
+        continue
+      }
+    }
+    if (coords) {
+      setManualLocation(coords.lat, coords.lng)
+      console.log('Coords found:', coords.lat, coords.lng)
+    } else {
+      setLocationSearchError('Location not found. Try a city and state instead.')
+    }
+  } catch (err) {
+    setLocationSearchError('Location not found. Try a city and state instead.')
+  }
+  setLocationSearching(false)
+}
 
   async function handleSearch(e) {
     e.preventDefault()
@@ -165,11 +199,37 @@ export default function App() {
             <FilterBar filters={filters} onChange={setFilters} />
 
             {locationLoading && (
-              <p className="text-gray-400 text-center py-10">Getting your location...</p>
-            )}
-            {locationError && (
-              <p className="text-red-400 text-center py-10">{locationError}</p>
-            )}
+  <p className="text-gray-400 text-center py-10">Getting your location...</p>
+)}
+
+{locationError && !location && (
+  <div className="py-6">
+    <p className="text-gray-400 text-center mb-4">
+      {locationError === 'permission-denied'
+        ? 'Location access was denied. Enter your city or zip code to find restaurants.'
+        : 'Geolocation not supported. Enter your city or zip code below.'}
+    </p>
+    <form onSubmit={handleLocationSearch} className="flex gap-2">
+      <input
+        type="text"
+        placeholder="Enter zip code or city, state..."
+        value={locationQuery}
+        onChange={(e) => setLocationQuery(e.target.value)}
+        className="flex-1 bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-orange-500"
+      />
+      <button
+        type="submit"
+        disabled={locationSearching}
+        className="bg-orange-500 hover:bg-orange-400 text-white px-4 py-3 rounded-xl font-medium text-sm transition-colors disabled:opacity-50"
+      >
+        {locationSearching ? '...' : 'Go'}
+      </button>
+    </form>
+    {locationSearchError && (
+      <p className="text-red-400 text-sm mt-2 text-center">{locationSearchError}</p>
+    )}
+  </div>
+)}
             {loading && (
               <p className="text-gray-400 text-center py-10">Finding restaurants near you...</p>
             )}
